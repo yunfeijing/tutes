@@ -38,6 +38,7 @@ public class EchoServer {
   public static final int port = 6379;
 
   public static void main(String[] args) {
+    System.out.println("Main function...");
     new EchoServer().handle();
   }
 
@@ -53,6 +54,23 @@ public class EchoServer {
   public void handle() {
     ServerSocket serverSocket;
     // TODO implement me :)
+    try {
+      serverSocket = new ServerSocket(port);
+      System.out.println("Started server on port " + port);
+
+      while (true) {
+
+        // a "blocking" call which waits until a connection is requested
+        Socket clientSocket = serverSocket.accept();
+        System.out.println("Accepted connection from client");
+
+        // EchoConnection echoConnection = new EchoConnection(conn);
+        // System.out.println("Made echo socket!");
+      }
+    } catch (IOException e) {
+      // handle the exception
+      System.out.println("Error...");
+    }
   }
 
   class EchoConnection {
