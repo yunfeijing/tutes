@@ -20,8 +20,6 @@
  *
  */
 
-package skeletons;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -31,7 +29,6 @@ import java.net.Socket;
 import java.util.Random;
 
 /*
-  Implement the TODO sections
   you can "echo" messages with the ridicule tO gEt tHe BeSt EfFecT
 */
 public class EchoServer {
@@ -53,7 +50,7 @@ public class EchoServer {
 
   public void handle() {
     ServerSocket serverSocket;
-    // TODO implement me :)
+
     try {
       serverSocket = new ServerSocket(port);
       System.out.println("Started server on port " + port);
@@ -64,12 +61,14 @@ public class EchoServer {
         Socket clientSocket = serverSocket.accept();
         System.out.println("Accepted connection from client");
 
-        // EchoConnection echoConnection = new EchoConnection(conn);
-        // System.out.println("Made echo socket!");
+        EchoConnection echoConnection = new EchoConnection(clientSocket);
+        System.out.println("Made echo connection socket!");
+        echoConnection.run();
+
       }
     } catch (IOException e) {
       // handle the exception
-      System.out.println("Error...");
+      e.printStackTrace();
     }
   }
 
@@ -86,13 +85,21 @@ public class EchoServer {
     }
 
     public void close() {
-      // TODO implement me :)
+      connection_alive = false;
     }
 
     public void run() {
       connection_alive = true;
       while (connection_alive) {
-        // TODO implement me :)
+        try{
+          String s = reader.readLine();
+          writer.println(ridicule(s));
+          writer.flush();
+        }
+        catch(IOException e){
+          e.printStackTrace();
+          close();
+        }
       }
       close();
     }
