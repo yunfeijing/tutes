@@ -85,20 +85,27 @@ public class EchoServer {
     }
 
     public void close() {
-      connection_alive = false;
+      try {
+        socket.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
 
     public void run() {
       connection_alive = true;
       while (connection_alive) {
-        try{
+        try {
           String s = reader.readLine();
-          writer.println(ridicule(s));
-          writer.flush();
-        }
-        catch(IOException e){
+          if (s == null) {
+            connection_alive = false;
+          } else {
+            writer.println(ridicule(s));
+            writer.flush();
+          }
+        } catch (IOException e) {
+          connection_alive = false;
           e.printStackTrace();
-          close();
         }
       }
       close();
