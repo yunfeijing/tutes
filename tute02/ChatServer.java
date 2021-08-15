@@ -21,9 +21,24 @@
  *
  */
 
-package skeletons;
 
-import java.awt.List;
+// a chat server that can accept multiple connections on port 6379
+// upon receiving a message, we broadcast to all other connected clients.
+
+/*
+ * server------- client
+ *  |
+ *  |
+ *  [listen] <----[syn]
+ *  |         synack
+ *  [recv syn] ---> [recv synack]
+ *            <----
+ *            ack
+ *
+ *  |               |
+ *    [established]
+ *  */
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -31,59 +46,65 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
 
+// support leaving/joining without causing an exception
 public class ChatServer {
-  public static final int port = 6379;
-  private boolean alive;
+  private boolean alive = false;
+  public static final int PORT = 6379;
   private List<ChatConnection> connectionList = new ArrayList<>();
 
   public static void main(String[] args) {
-    new ChatServer().handle();
+    ChatServer server = new ChatServer();
+    server.handle();
   }
 
-  private void enter(ChatConnection connection) {
-    broadCast(String.format("%d has just joined the chat", connection.socket.getPort()), null);
-    connectionList.add(connection);
+  private void leave(ChatConnection conn) {
+    synchronized (connectionList) {
+      connectionList.remove(conn);
+    }
+    broadcast(String.format("%d has left the chat\n", conn.socket.getPort()), conn);
   }
 
-  private void leave(ChatConnection connection) {
-    broadCast(String.format("%d has just left the chat", connection.socket.getPort()), connection);
-    connectionList.remove(connection);
+  private void join(ChatConnection conn) {
+    synchronized (connectionList) {
+      connectionList.add(conn);
+    }
+    broadcast(String.format("%d has joined the chat\n", conn.socket.getPort()), null);
   }
 
-  private synchronized void broadCast(String message, ChatConnection ignored) {
-    for (ChatConnection c : connectionList) {
-      if (ignored == null || !ignored.equals(c))
-        c.sendMessage(message);
+  private void broadcast(String message, ChatConnection ignored) {
+    synchronized (connectionList) {
+      for (ChatConnection c : connectionList) {
+        if (ignored == null || !ignored.equals(c))
+          c.sendMessage(message);
+      }
     }
   }
 
-  public void handle() {
+  private void handle() {
     ServerSocket serverSocket;
     try {
-      serverSocket = new ServerSocket(port);
-      System.out.printf("Listening on port %d\n", port);
+      serverSocket = new ServerSocket(PORT);
+      System.out.printf("listening on port %d\n", PORT);
       alive = true;
-
       while (alive) {
-        Socket newSocket = serverSocket.accept();
-        ChatConnection conn = new ChatConnection(newSocket);
-        conn.start();
-        join(conn);
+        Socket socket = serverSocket.accept();
+        // do some stuff here with socket
+        ChatConnection connection = new ChatConnection(socket);
+        connection.start();
+        join(connection);
       }
-
     } catch (IOException e) {
-      System.out.println("Exception occured creating ServerSocket: ", e.getMessage());
-      alive = false;
       e.printStackTrace();
     }
   }
 
-  class ChatConnection extends Thread {
+  private class ChatConnection extends Thread {
     private Socket socket;
-    private PrintWriter writer;
     private BufferedReader reader;
-    private boolean connection_alive = false;
+    private PrintWriter writer;
+    private boolean connectionAlive = false;
 
     public ChatConnection(Socket socket) throws IOException {
       this.socket = socket;
@@ -93,19 +114,17 @@ public class ChatServer {
 
     @Override
     public void run() {
-      connection_alive = true;
-      while (connection_alive) {
+      connectionAlive = true;
+      while (connectionAlive) {
         try {
-          String in = reader.readLine();
-          // broadcast
+          String in  = reader.readLine();
           if (in != null) {
-            broadCast(String.format("%d: %s\n", socket.getPort(), in), this);
+            broadcast(String.format("%d: %s\n", socket.getPort(), in), this);
           } else {
-            connection_alive = false;
+            connectionAlive = false;
           }
         } catch (IOException e) {
-          connection_alive = false;
-          e.printStackTrace();
+          connectionAlive = false;
         }
       }
       close();
@@ -114,11 +133,11 @@ public class ChatServer {
     public void close() {
       try {
         leave(this);
+        socket.close();
         reader.close();
         writer.close();
-        socket.close();
       } catch (IOException e) {
-        e.printStackTrace();
+        System.out.println(e.getMessage());
       }
     }
 
