@@ -21,14 +21,39 @@ public class ThreadPool {
   }
 
   public void execute(Runnable task) {
-    // TODO implement me :)
+    // add the job to the queue
+    synchronized (taskQueue) {
+      taskQueue.add(task);
+      taskQueue.notify();
+    }
+
   }
 
   private class ThreadWorker extends Thread {
 
     @Override
     public void run() {
-      // TODO implement me :)
+      Runnable curr_task;
+      while (true) {
+        // get a job from the queue
+        synchronized (taskQueue) {
+          while (taskQueue.isEmpty()) {
+            // if the queue is empty, wait until a job arrives???
+            try {
+              taskQueue.wait();
+            } catch (InterruptedException e) {
+              System.out.println("An error occurred while queue is waiting: " + e.getMessage());
+            }
+          }
+          curr_task = taskQueue.poll();
+        }
+
+        try {
+          curr_task.run();
+        } catch (RuntimeException e) {
+          System.out.println("Thread pool is interrupted due to an issue: " + e.getMessage());
+        }
+      }
     }
   }
 }

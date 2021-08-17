@@ -1,8 +1,5 @@
 
-
-
 // public static void main() {} <--- runs inside the main thread
-
 
 // creating a static thread pool, which executes tasks implementing the Runnable interface
 
@@ -12,6 +9,7 @@ public class Main {
   public static void main(String[] args) {
     // n is the + add to tune the difficulty
     poolExec(20);
+    // singleExec(20);
   }
 
   private static void singleExec(int n) {
@@ -23,6 +21,7 @@ public class Main {
 
   private static void poolExec(int n) {
     ThreadPool threadPool = new ThreadPool(NUM_THREADS);
+    System.out.format("Started thread pool of size %d\n", n);
     for (int i = 0; i < 20; i++) {
       FibTask newTask = new FibTask(i + n);
       threadPool.execute(newTask);
